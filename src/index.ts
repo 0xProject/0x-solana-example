@@ -20,23 +20,20 @@ const config = fetchConfig();
 
 // === Step 1: Get a Quote ===
 async function getQuote(): Promise<ZeroExQuoteResponse> {
-  const response = await fetch(
-    "https://staging.api.0x.org/solana/swap-instructions",
-    {
-      method: "POST",
-      headers: {
-        "0x-api-key": config.zeroexApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tokenOut: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
-        tokenIn: "So11111111111111111111111111111111111111112", // SOL
-        amountIn: 1000000, // .001 SOL
-        slippage_bps: 100, // Optional. Slippage tolerance in basis points (bps). Must be between 0 and 10,000. Default is 50 bps (0.5%).
-        taker: config.keypairConfig.keypair.publicKey.toBase58(),
-      }),
-    }
-  );
+  const response = await fetch("https://api.0x.org/solana/swap-instructions", {
+    method: "POST",
+    headers: {
+      "0x-api-key": config.zeroexApiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      token_out: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+      token_in: "So11111111111111111111111111111111111111112", // SOL
+      amount_in: 1000000, // .001 SOL
+      slippage_bps: 100, // Optional. Slippage tolerance in basis points (bps). Must be between 0 and 10,000. Default is 50 bps (0.5%).
+      taker: config.keypairConfig.keypair.publicKey.toBase58(),
+    }),
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch quote: ${response.statusText}`);

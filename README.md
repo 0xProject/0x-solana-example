@@ -34,7 +34,7 @@ If you have provided a private key:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/jlin27/0x-solana-example.git
+git clone https://github.com/0xProject/0x-solana-example.git
 cd 0x-solana-example
 ```
 

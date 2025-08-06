@@ -17,7 +17,7 @@ const InstructionSchema = z.object({
 export type Instruction = z.infer<typeof InstructionSchema>;
 
 export const ZeroExQuoteResponseSchema = z.object({
-  amountOut: z.number(),
+  amount_out: z.number(),
   instructions: z.array(InstructionSchema),
 });
 

@@ -18,6 +18,10 @@ import {
 dotenv({ quiet: true });
 const config = fetchConfig();
 
+if (!process.env.ZEROEX_API_KEY) {
+  throw new Error("ZEROEX_API_KEY is not set");
+}
+
 // === Step 1: Get a Quote ===
 async function getQuote(): Promise<ZeroExQuoteResponse> {
   const response = await fetch("https://api.0x.org/solana/swap-instructions", {
@@ -107,7 +111,7 @@ async function executeSwap() {
 
     // === Send Transaction ===
     const signature = await config.connection.sendTransaction(versionedTx, {
-      skipPreflight: true,
+      skipPreflight: false,
     });
 
     console.log(`✍️ Transaction sent with signature: ${signature}`);
@@ -119,7 +123,7 @@ async function executeSwap() {
         blockhash: latestBlockhash.blockhash,
         lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
       },
-      "finalized"
+      "confirmed"
     );
 
     if (confirmation.value.err) {

@@ -1,11 +1,9 @@
-import { config as dotenv } from "dotenv";
 import {
   PublicKey,
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import fetch from "node-fetch";
 import { fetchConfig } from "./config";
 import {
   Instruction,
@@ -14,8 +12,6 @@ import {
   ZeroExQuoteResponseSchema,
 } from "./schema";
 
-// === Load ENV Variables ===
-dotenv({ quiet: true });
 const config = fetchConfig();
 
 if (!process.env.ZEROEX_API_KEY) {
@@ -33,8 +29,8 @@ async function getQuote(): Promise<ZeroExQuoteResponse> {
     body: JSON.stringify({
       token_out: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
       token_in: "So11111111111111111111111111111111111111112", // SOL
-      amount_in: 1000000, // .001 SOL
-      slippage_bps: 100, // Optional. Slippage tolerance in basis points (bps). Must be between 0 and 10,000. Default is 50 bps (0.5%).
+      amount_in: 1000000, // 0.001 SOL
+      slippage_bps: 100, // Optional. Slippage tolerance in basis points (bps). Must be between 0 and 10,000.
       taker: config.keypairConfig.keypair.publicKey.toBase58(),
     }),
   });
@@ -72,7 +68,7 @@ function buildInstructions(
 async function executeSwap() {
   try {
     const quote = await getQuote();
-    console.log("💰 Quote received");
+    console.log(`💰 Quote received: ${quote.amount_out} base units of USDC`);
 
     if (!config.keypairConfig.isUserProvided) {
       console.log(
@@ -107,6 +103,11 @@ async function executeSwap() {
       throw new Error("Aborting due to failed simulation.");
     } else {
       console.log("✅ Simulation succeeded");
+    }
+
+    if (config.dryRun) {
+      console.log("🏁 Dry run complete. Set DRY_RUN=false to send the transaction.");
+      return;
     }
 
     // === Send Transaction ===

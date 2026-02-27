@@ -1,4 +1,5 @@
 import {
+  AddressLookupTableAccount,
   PublicKey,
   TransactionInstruction,
   TransactionMessage,
@@ -64,11 +65,55 @@ function buildInstructions(
   });
 }
 
-// === Step 3: Execute Swap with Simulation and Confirmation ===
+// === Step 3: Resolve Address Lookup Tables ===
+async function resolveAddressLookupTables(
+  keys: string[]
+): Promise<AddressLookupTableAccount[]> {
+  const accountInfos = await config.connection.getMultipleAccountsInfo(
+    keys.map((key) => new PublicKey(key))
+  );
+
+  const accounts: AddressLookupTableAccount[] = [];
+  for (let i = 0; i < keys.length; i++) {
+    const accountInfo = accountInfos[i];
+    if (!accountInfo) {
+      throw new Error(
+        `Failed to resolve address lookup table: ${keys[i]}`
+      );
+    }
+    accounts.push(
+      new AddressLookupTableAccount({
+        key: new PublicKey(keys[i]),
+        state: AddressLookupTableAccount.deserialize(accountInfo.data),
+      })
+    );
+  }
+
+  console.debug(`Resolved ${accounts.length} address lookup table(s)`);
+
+  return accounts;
+}
+
+// === Step 4: Execute Swap with Simulation and Confirmation ===
 async function executeSwap() {
   try {
     const quote = await getQuote();
     console.log(`💰 Quote received: ${quote.amount_out} base units of USDC`);
+
+    const instructions = buildInstructions(quote.instructions);
+    const [addressLookupTableAccounts, latestBlockhash] = await Promise.all([
+      resolveAddressLookupTables(quote.address_lookup_tables ?? []),
+      config.connection.getLatestBlockhash(),
+    ]);
+
+    const messageV0 = new TransactionMessage({
+      payerKey: config.keypairConfig.keypair.publicKey,
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const versionedTx = new VersionedTransaction(messageV0);
+    versionedTx.sign([config.keypairConfig.keypair]);
 
     if (!config.keypairConfig.isUserProvided) {
       console.log(
@@ -76,18 +121,6 @@ async function executeSwap() {
       );
       return;
     }
-
-    const instructions = buildInstructions(quote.instructions);
-    const latestBlockhash = await config.connection.getLatestBlockhash();
-
-    const messageV0 = new TransactionMessage({
-      payerKey: config.keypairConfig.keypair.publicKey,
-      recentBlockhash: latestBlockhash.blockhash,
-      instructions,
-    }).compileToV0Message();
-
-    const versionedTx = new VersionedTransaction(messageV0);
-    versionedTx.sign([config.keypairConfig.keypair]);
 
     // === Simulate Transaction ===
     const { value: simulationResult } =
